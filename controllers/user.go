@@ -121,12 +121,15 @@ func (c *UserController) Create(ctx echo.Context) error {
 		return err
 	}
 
-	return ctx.JSON(http.StatusCreated, dto.UserResponse{
-		ID:        user.ID,
-		Nama:      user.Nama,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+	return ctx.JSON(http.StatusCreated, dto.CreateResponse{
+		Message: "Data Berhasil di Buat",
+		Data: dto.UserResponse{
+			ID:        user.ID,
+			Nama:      user.Nama,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+		},
 	})
 }
 
@@ -163,8 +166,15 @@ func (c *UserController) Update(ctx echo.Context) error {
 		return err
 	}
 
-	return ctx.JSON(http.StatusOK, map[string]string{
-		"message": "Data Berhasil di Perbarui",
+	return ctx.JSON(http.StatusOK, dto.CreateResponse{
+		Message: "Data Berhasil di Perbarui",
+		Data: dto.UserResponse{
+			ID:        user.ID,
+			Nama:      user.Nama,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+		},
 	})
 }
 

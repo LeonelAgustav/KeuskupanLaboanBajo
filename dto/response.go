@@ -101,3 +101,8 @@ type ErrorDetail struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 }
+
+type CreateResponse struct {
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}

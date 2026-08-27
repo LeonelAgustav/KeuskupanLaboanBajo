@@ -19,7 +19,7 @@ func main() {
 	e.HTTPErrorHandler = middleware.ErrorHandler
 	e.Validator = &middleware.CustomValidator{Validator: validator.New()}
 
-	routes.UserRoutes(e, db)
+	routes.RegisterRoutes(e, db)
 
 	fmt.Println("starting web server at http://localhost:8080/")
 	e.Logger.Fatal(e.Start(":8080"))
