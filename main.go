@@ -1,24 +1,27 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"os"
 
+	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 func main() {
-	dsn := "root:@tcp(127.0.0.1:3306)/db_keuskupan?charset=utf8mb4&parseTime=True&loc=Local"
-	_, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		NamingStrategy: schema.NamingStrategy{
-			SingularTable: true,
-		},
-	})
+	// Load file .env
+	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Koneksi gagal: %v", err)
-	} else {
-		fmt.Println("Koneksi berhasil")
+		log.Fatal("Gagal load file .env")
 	}
+
+	dsn := os.Getenv("DB_DSN")
+
+	_, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal("Gagal koneksi database:", err)
+	}
+
+	log.Println("Koneksi database berhasil!")
 }
