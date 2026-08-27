@@ -2,34 +2,25 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"os"
 
-	"github.com/joho/godotenv"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
+	"KeuskupanLaboanBajo/config"
+	"KeuskupanLaboanBajo/middleware"
+	"KeuskupanLaboanBajo/routes"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/labstack/echo/v4"
 )
 
 func main() {
-	// Load file .env
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Gagal load file .env")
-	}
+	db := config.ConnectDB()
 
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASS")
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	name := os.Getenv("DB_NAME")
+	e := echo.New()
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		user, pass, host, port, name)
+	e.HTTPErrorHandler = middleware.ErrorHandler
+	e.Validator = &middleware.CustomValidator{Validator: validator.New()}
 
-	_, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Gagal koneksi database:", err)
-	}
+	routes.UserRoutes(e, db)
 
-	log.Println("Koneksi database berhasil!")
+	fmt.Println("starting web server at http://localhost:8080/")
+	e.Logger.Fatal(e.Start(":8080"))
 }
