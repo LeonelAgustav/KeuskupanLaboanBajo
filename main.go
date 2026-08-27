@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -16,7 +17,14 @@ func main() {
 		log.Fatal("Gagal load file .env")
 	}
 
-	dsn := os.Getenv("DB_DSN")
+	user := os.Getenv("DB_USER")
+	pass := os.Getenv("DB_PASS")
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	name := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		user, pass, host, port, name)
 
 	_, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
