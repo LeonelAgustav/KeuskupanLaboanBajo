@@ -1,8 +1,40 @@
 package dto
 
 import (
+	"strings"
 	"time"
 )
+
+type LocalDate struct {
+	time.Time
+}
+
+func (ld *LocalDate) UnmarshalJSON(data []byte) error {
+	s := strings.Trim(string(data), `"`)
+	if s == "" || s == "null" {
+		return nil
+	}
+	formats := []string{
+		"2006-01-02",
+		"02-01-2006",
+		"2006-01-02T15:04:05Z07:00",
+		time.RFC3339,
+	}
+	for _, f := range formats {
+		if t, err := time.Parse(f, s); err == nil {
+			ld.Time = t
+			return nil
+		}
+	}
+	return nil
+}
+
+func (ld LocalDate) MarshalJSON() ([]byte, error) {
+	if ld.IsZero() {
+		return []byte("null"), nil
+	}
+	return []byte(`"` + ld.Format("2006-01-02") + `"`), nil
+}
 
 type AkunCreateRequest struct {
 	Kode    string `json:"kode" validate:"required,min=3,max=20"`
@@ -34,7 +66,7 @@ type JenisUpdateRequest struct {
 
 type JurnalCreateRequest struct {
 	KeuskupanID uint                   `json:"keuskupan_id" validate:"required"`
-	Tanggal     time.Time              `json:"tanggal" validate:"required"`
+	Tanggal     LocalDate              `json:"tanggal" validate:"required"`
 	Deskripsi   *string                `json:"deskripsi,omitempty"`
 	NoBukti     *string                `json:"no_bukti,omitempty"`
 	DetilJurnal []DetilJurnalCreateReq `json:"detil_jurnal" validate:"required,min=1,dive"`
@@ -42,7 +74,7 @@ type JurnalCreateRequest struct {
 
 type JurnalUpdateRequest struct {
 	KeuskupanID *uint                  `json:"keuskupan_id,omitempty"`
-	Tanggal     *time.Time             `json:"tanggal,omitempty"`
+	Tanggal     *LocalDate             `json:"tanggal,omitempty"`
 	Deskripsi   *string                `json:"deskripsi,omitempty"`
 	NoBukti     *string                `json:"no_bukti,omitempty"`
 	DetilJurnal []DetilJurnalCreateReq `json:"detil_jurnal,omitempty" validate:"omitempty,dive"`

@@ -50,4 +50,32 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	akuns.GET("/:id", akunController.Get)
 	akuns.PUT("/:id", akunController.Update)
 	akuns.DELETE("/:id", akunController.Delete)
+
+	// Jenis routes
+	jenisController := controllers.NewJenisController(db)
+	jeniss := api.Group("/jenis")
+	jeniss.POST("", jenisController.Create)
+	jeniss.GET("", jenisController.List)
+	jeniss.GET("/:id", jenisController.Get)
+	jeniss.PUT("/:id", jenisController.Update)
+	jeniss.DELETE("/:id", jenisController.Delete)
+
+	// Pembatasan routes
+	pembatasanController := controllers.NewPembatasanController(db)
+	pembatasans := api.Group("/pembatasan")
+	pembatasans.POST("", pembatasanController.Create)
+	pembatasans.GET("", pembatasanController.List)
+	pembatasans.GET("/:id", pembatasanController.Get)
+	pembatasans.PUT("/:id", pembatasanController.Update)
+	pembatasans.DELETE("/:id", pembatasanController.Delete)
+
+	// Jurnal routes
+	jurnalController := controllers.NewJurnalController(db)
+	jurnals := api.Group("/jurnal")
+	jurnals.POST("", jurnalController.Create)
+	jurnals.GET("", jurnalController.List)
+	jurnals.GET("/:id", jurnalController.Get)
+	jurnals.PUT("/:id", jurnalController.Update)
+	jurnals.DELETE("/:id", jurnalController.Delete)
+	jurnals.GET("/:id/detil", jurnalController.ListDetil)
 }
