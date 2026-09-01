@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"KeuskupanLaboanBajo_BE/config"
 	"KeuskupanLaboanBajo_BE/middleware"
@@ -21,6 +22,10 @@ func main() {
 
 	routes.RegisterRoutes(e, db)
 
-	fmt.Println("starting web server at http://localhost:8080/")
-	e.Logger.Fatal(e.Start(":8080"))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	fmt.Printf("starting web server at 0.0.0.0:%s\n", port)
+	e.Logger.Fatal(e.Start(":" + port))
 }
