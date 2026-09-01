@@ -7,8 +7,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 
-	"KeuskupanLaboanBajo/dto"
-	"KeuskupanLaboanBajo/models"
+	"KeuskupanLaboanBajo_BE/dto"
+	"KeuskupanLaboanBajo_BE/models"
 )
 
 type PembatasanController struct {
@@ -67,7 +67,7 @@ func (c *PembatasanController) List(ctx echo.Context) error {
 			CreatedAt: p.CreatedAt,
 			UpdatedAt: p.UpdatedAt,
 		}
-		if p.Akun != nil && p.Akun.ID != 0 {
+		if p.Akun != nil && p.Akun.ID != "" {
 			responses[i].Akun = &dto.AkunResponse{
 				ID:        p.Akun.ID,
 				Kode:      p.Akun.Kode,
@@ -110,7 +110,7 @@ func (c *PembatasanController) Get(ctx echo.Context) error {
 		CreatedAt: pembatasan.CreatedAt,
 		UpdatedAt: pembatasan.UpdatedAt,
 	}
-	if pembatasan.Akun != nil && pembatasan.Akun.ID != 0 {
+	if pembatasan.Akun != nil && pembatasan.Akun.ID != "" {
 		resp.Akun = &dto.AkunResponse{
 			ID:        pembatasan.Akun.ID,
 			Kode:      pembatasan.Akun.Kode,
@@ -215,3 +215,5 @@ func (c *PembatasanController) Delete(ctx echo.Context) error {
 		"message": "Data Berhasil di Hapus",
 	})
 }
+
+

@@ -9,8 +9,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 
-	"KeuskupanLaboanBajo/dto"
-	"KeuskupanLaboanBajo/models"
+	"KeuskupanLaboanBajo_BE/dto"
+	"KeuskupanLaboanBajo_BE/models"
 )
 
 type JurnalController struct {
@@ -83,7 +83,7 @@ func (c *JurnalController) List(ctx echo.Context) error {
 			CreatedAt:   j.CreatedAt,
 			UpdatedAt:   j.UpdatedAt,
 		}
-		if j.Keuskupan.ID != 0 {
+		if j.Keuskupan.ID != "" {
 			responses[i].Keuskupan = &dto.KeuskupanResponse{
 				ID:        j.Keuskupan.ID,
 				Nama:      j.Keuskupan.Nama,
@@ -135,11 +135,11 @@ func (c *JurnalController) loadDetilJurnal(jurnalIDs []string) map[string][]dto.
 
 	for rows.Next() {
 		var d models.DetilJurnal
-		var akunID, parokiID sql.NullInt64
+		var akunID, parokiID sql.NullString
 		var kode, nama, parokiNama, alamat sql.NullString
-		var jenisID sql.NullInt64
+		var jenisID sql.NullString
 		var akunCreatedAt, akunUpdatedAt, parokiCreatedAt, parokiUpdatedAt sql.NullTime
-		var keuskupanID sql.NullInt64
+		var keuskupanID sql.NullString
 
 		if err := rows.Scan(
 			&d.ID, &d.JurnalID, &d.AkunID, &d.ParokiID, &d.Debit, &d.Kredit, &d.Keterangan, &d.CreatedAt, &d.UpdatedAt,
@@ -163,20 +163,20 @@ func (c *JurnalController) loadDetilJurnal(jurnalIDs []string) map[string][]dto.
 
 		if akunID.Valid {
 			resp.Akun = &dto.AkunResponse{
-				ID:        uint(akunID.Int64),
+				ID:        akunID.String,
 				Kode:      kode.String,
 				Nama:      nama.String,
-				JenisID:   uint(jenisID.Int64),
+				JenisID:   jenisID.String,
 				CreatedAt: akunCreatedAt.Time,
 				UpdatedAt: akunUpdatedAt.Time,
 			}
 		}
 		if parokiID.Valid {
 			resp.Paroki = &dto.ParokiResponse{
-				ID:          uint(parokiID.Int64),
+				ID:          parokiID.String,
 				Nama:        parokiNama.String,
 				Alamat:      alamat.String,
-				KeuskupanID: uint(keuskupanID.Int64),
+				KeuskupanID: keuskupanID.String,
 				CreatedAt:   parokiCreatedAt.Time,
 				UpdatedAt:   parokiUpdatedAt.Time,
 			}
@@ -223,7 +223,7 @@ func (c *JurnalController) Get(ctx echo.Context) error {
 		CreatedAt:   jurnal.CreatedAt,
 		UpdatedAt:   jurnal.UpdatedAt,
 	}
-	if keuskupan.ID != 0 {
+	if keuskupan.ID != "" {
 		resp.Keuskupan = &dto.KeuskupanResponse{
 			ID:        keuskupan.ID,
 			Nama:      keuskupan.Nama,
@@ -487,7 +487,7 @@ func (c *JurnalController) ListDetil(ctx echo.Context) error {
 			CreatedAt:  d.CreatedAt,
 			UpdatedAt:  d.UpdatedAt,
 		}
-		if d.Akun.ID != 0 {
+		if d.Akun.ID != "" {
 			responses[i].Akun = &dto.AkunResponse{
 				ID:        d.Akun.ID,
 				Kode:      d.Akun.Kode,
@@ -497,7 +497,7 @@ func (c *JurnalController) ListDetil(ctx echo.Context) error {
 				UpdatedAt: d.Akun.UpdatedAt,
 			}
 		}
-		if d.Paroki.ID != 0 {
+		if d.Paroki.ID != "" {
 			responses[i].Paroki = &dto.ParokiResponse{
 				ID:          d.Paroki.ID,
 				Nama:        d.Paroki.Nama,
@@ -517,3 +517,5 @@ func (c *JurnalController) ListDetil(ctx echo.Context) error {
 		TotalPages: int((total + int64(query.Limit) - 1) / int64(query.Limit)),
 	})
 }
+
+

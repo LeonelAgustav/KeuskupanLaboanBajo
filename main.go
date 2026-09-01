@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"KeuskupanLaboanBajo/config"
-	"KeuskupanLaboanBajo/middleware"
-	"KeuskupanLaboanBajo/routes"
+	"KeuskupanLaboanBajo_BE/config"
+	"KeuskupanLaboanBajo_BE/middleware"
+	"KeuskupanLaboanBajo_BE/routes"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"

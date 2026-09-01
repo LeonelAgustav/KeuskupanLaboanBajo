@@ -7,8 +7,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 
-	"KeuskupanLaboanBajo/dto"
-	"KeuskupanLaboanBajo/models"
+	"KeuskupanLaboanBajo_BE/dto"
+	"KeuskupanLaboanBajo_BE/models"
 )
 
 type JenisController struct {

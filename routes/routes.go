@@ -1,7 +1,8 @@
 package routes
 
 import (
-	"KeuskupanLaboanBajo/controllers"
+	"KeuskupanLaboanBajo_BE/controllers"
+	localMw "KeuskupanLaboanBajo_BE/middleware"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -12,6 +13,13 @@ import (
 func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	// ponytail: CORS untuk app+web 1 codebase (flutter web di localhost:*)
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+		AllowCredentials: true,
+	}))
 
 	api := e.Group("/api/v1")
 
@@ -78,4 +86,17 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	jurnals.PUT("/:id", jurnalController.Update)
 	jurnals.DELETE("/:id", jurnalController.Delete)
 	jurnals.GET("/:id/detil", jurnalController.ListDetil)
+
+	// Auth routes (public)
+	authController := controllers.NewAuthController(db)
+	auth := api.Group("/auth")
+	auth.POST("/register", authController.Register)
+	auth.POST("/login", authController.Login)
+	auth.POST("/refresh", authController.Refresh)
+
+	// Sync routes (protected JWT)
+	syncController := controllers.NewSyncController(db)
+	sync := api.Group("/sync", localMw.JWTMiddleware)
+	sync.POST("/push", syncController.Push)
+	sync.GET("/pull", syncController.Pull)
 }

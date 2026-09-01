@@ -7,8 +7,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 
-	"KeuskupanLaboanBajo/dto"
-	"KeuskupanLaboanBajo/models"
+	"KeuskupanLaboanBajo_BE/dto"
+	"KeuskupanLaboanBajo_BE/models"
 )
 
 type ParokiController struct {
@@ -67,7 +67,7 @@ func (c *ParokiController) List(ctx echo.Context) error {
 			CreatedAt:   p.CreatedAt,
 			UpdatedAt:   p.UpdatedAt,
 		}
-		if p.Keuskupan.ID != 0 {
+		if p.Keuskupan.ID != "" {
 			responses[i].Keuskupan = &dto.KeuskupanResponse{
 				ID:        p.Keuskupan.ID,
 				Nama:      p.Keuskupan.Nama,
@@ -109,7 +109,7 @@ func (c *ParokiController) Get(ctx echo.Context) error {
 		CreatedAt:   paroki.CreatedAt,
 		UpdatedAt:   paroki.UpdatedAt,
 	}
-	if paroki.Keuskupan.ID != 0 {
+	if paroki.Keuskupan.ID != "" {
 		resp.Keuskupan = &dto.KeuskupanResponse{
 			ID:        paroki.Keuskupan.ID,
 			Nama:      paroki.Keuskupan.Nama,
@@ -221,3 +221,5 @@ func (c *ParokiController) Delete(ctx echo.Context) error {
 		"message": "Data Berhasil di Hapus",
 	})
 }
+
+
