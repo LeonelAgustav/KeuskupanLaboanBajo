@@ -10,7 +10,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o main .
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/main .
-COPY --from=builder /app/.env.example .env # jika butuh file env sebagai fallback
+# Jika butuh file env sebagai fallback
+COPY --from=builder /app/.env.example .env
 
 EXPOSE 8080
 CMD ["./main"]
