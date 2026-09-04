@@ -6,32 +6,16 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"KeuskupanLaboanBajo_BE/models"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
-
-func ensureDatabaseExists(user, pass, host, port, name string) {
-	// konek tanpa nama DB untuk CREATE DATABASE IF NOT EXISTS
-	dsnRoot := fmt.Sprintf("%s:%s@tcp(%s:%s)/?charset=utf8mb4&parseTime=True&loc=Local",
-		user, pass, host, port)
-	dbRoot, err := gorm.Open(mysql.Open(dsnRoot), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("Gagal konek MySQL server untuk create DB: %v", err)
-	}
-	// ponytail: raw SQL paling simpel, tidak perlu driver tambahan
-	sqlDB, _ := dbRoot.DB()
-	defer sqlDB.Close()
-	createSQL := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", name)
-	if err := dbRoot.Exec(createSQL).Error; err != nil {
-		log.Fatalf("Gagal create database %s: %v", name, err)
-	}
-	log.Printf("Database `%s` siap (created if not exists)", name)
-}
 
 func parseDBURL(raw string) (user, pass, host, port, name string, ok bool) {
 	if raw == "" {
@@ -58,61 +42,100 @@ func parseDBURL(raw string) (user, pass, host, port, name string, ok bool) {
 	return user, pass, host, port, name, true
 }
 
+func ensureDatabaseExists(user, pass, host, port, name string) {
+	dsnRoot := fmt.Sprintf("%s:%s@tcp(%s:%s)/?charset=utf8mb4&parseTime=True&loc=Local",
+		user, pass, host, port)
+	dbRoot, err := gorm.Open(mysql.Open(dsnRoot), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("❌ Gagal konek MySQL server untuk create DB: %v", err)
+	}
+	sqlDB, _ := dbRoot.DB()
+	defer sqlDB.Close()
+	createSQL := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", name)
+	if err := dbRoot.Exec(createSQL).Error; err != nil {
+		log.Fatalf("❌ Gagal create database %s: %v", name, err)
+	}
+	log.Printf("✅ Database `%s` siap (created if not exists)", name)
+}
+
 func ConnectDB() *gorm.DB {
 	if err := godotenv.Load(); err != nil {
-		log.Println("Warning: .env tidak ditemukan, pakai env sistem")
+		log.Println("⚠️  Warning: .env tidak ditemukan, pakai env sistem")
 	}
 
-	// ponytail: dukung DB_URL Railway mysql://user:pass@host:port/db
 	var dsn string
 	var user, pass, host, port, name string
-	var fromURL bool
 
 	if dbURL := os.Getenv("DB_URL"); dbURL != "" {
 		var ok bool
 		user, pass, host, port, name, ok = parseDBURL(dbURL)
 		if !ok {
-			log.Fatalf("DB_URL format salah, harus mysql://user:pass@host:port/dbname, got: %s", dbURL)
+			log.Fatalf("❌ DB_URL format salah, harus mysql://user:pass@host:port/dbname, got: %s", dbURL)
 		}
-		dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 			user, pass, host, port, name)
-		fromURL = true
-		log.Printf("Pakai DB_URL -> %s:***@%s:%s/%s", user, host, port, name)
-	} else {
-		user = os.Getenv("DB_USER")
-		pass = os.Getenv("DB_PASS")
-		host = os.Getenv("DB_HOST")
-		port = os.Getenv("DB_PORT")
-		name = os.Getenv("DB_NAME")
-
-		if user == "" || host == "" || name == "" {
-			log.Fatal("DB_USER/DB_HOST/DB_NAME kosong, cek .env atau set DB_URL")
+		log.Printf("🔗 Pakai DB_URL -> %s:***@%s:%s/%s", user, host, port, name)
+		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+			NamingStrategy: schema.NamingStrategy{SingularTable: true},
+			Logger: logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{
+				SlowThreshold:             200 * time.Millisecond,
+				LogLevel:                  logger.Info,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  true,
+			}),
+		})
+		if err != nil {
+			log.Fatalf("❌ Gagal koneksi database: %v", err)
 		}
-		if port == "" {
-			port = "3306"
+		if err := db.AutoMigrate(
+			&models.Role{},
+			&models.User{},
+			&models.Keuskupan{},
+			&models.Paroki{},
+			&models.Jenis{},
+			&models.Akun{},
+			&models.Jurnal{},
+			&models.DetilJurnal{},
+			&models.Pembatasan{},
+		); err != nil {
+			log.Fatalf("❌ Gagal AutoMigrate: %v", err)
 		}
-		// 1. Pastikan DB ada (auto create) - skip untuk Railway (DB sudah ada)
-		ensureDatabaseExists(user, pass, host, port, name)
-		dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-			user, pass, host, port, name)
+		seedRoles(db)
+		log.Println("✅ Koneksi database berhasil + AutoMigrate OK!")
+		return db
 	}
 
-	// Railway tidak perlu CREATE DATABASE, skip ensure
-	if fromURL {
-		log.Printf("Skip ensureDatabaseExists untuk DB_URL (Railway)")
-	}
+	user = os.Getenv("DB_USER")
+	pass = os.Getenv("DB_PASS")
+	host = os.Getenv("DB_HOST")
+	port = os.Getenv("DB_PORT")
+	name = os.Getenv("DB_NAME")
 
+	if user == "" || host == "" || name == "" {
+		log.Fatal("❌ DB_USER/DB_HOST/DB_NAME kosong, cek .env atau set DB_URL")
+	}
+	if port == "" {
+		port = "3306"
+	}
+	ensureDatabaseExists(user, pass, host, port, name)
+
+	dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		user, pass, host, port, name)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		NamingStrategy: schema.NamingStrategy{
-			SingularTable: true,
-		},
+		NamingStrategy: schema.NamingStrategy{SingularTable: true},
+		Logger: logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  logger.Info,
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  true,
+		}),
 	})
 	if err != nil {
-		log.Fatal("Gagal koneksi database:", err)
+		log.Fatalf("❌ Gagal koneksi database: %v", err)
 	}
 
-	// 3. AutoMigrate untuk local-first (UUID + DeletedAt + UpdatedAt)
 	if err := db.AutoMigrate(
+		&models.Role{},
 		&models.User{},
 		&models.Keuskupan{},
 		&models.Paroki{},
@@ -122,9 +145,26 @@ func ConnectDB() *gorm.DB {
 		&models.DetilJurnal{},
 		&models.Pembatasan{},
 	); err != nil {
-		log.Fatal("Gagal AutoMigrate:", err)
+		log.Fatalf("❌ Gagal AutoMigrate: %v", err)
 	}
 
-	log.Println("Koneksi database berhasil + AutoMigrate OK!")
+	seedRoles(db)
+
+	log.Println("✅ Koneksi database berhasil + AutoMigrate OK!")
 	return db
+}
+
+func seedRoles(db *gorm.DB) {
+	roles := []string{"SUPERADMIN", "ADMIN", "MEMBER"}
+	for _, nama := range roles {
+		var count int64
+		db.Model(&models.Role{}).Where("nama = ?", nama).Count(&count)
+		if count == 0 {
+			if err := db.Create(&models.Role{Nama: nama}).Error; err != nil {
+				log.Printf("⚠️ Gagal seed role %s: %v", nama, err)
+			} else {
+				log.Printf("✅ Role %s seeded", nama)
+			}
+		}
+	}
 }

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -29,13 +30,37 @@ type PushRequest struct {
 	Items []PushItem `json:"items" validate:"required,min=1,dive"`
 }
 
+func strToUint(v interface{}) uint {
+	switch t := v.(type) {
+	case float64:
+		return uint(t)
+	case string:
+		var n uint64
+		for _, r := range t {
+			if r < '0' || r > '9' {
+				return 0
+			}
+			n = n*10 + uint64(r-'0')
+		}
+		return uint(n)
+	}
+	return 0
+}
+
 func (s *SyncController) Push(c echo.Context) error {
 	var req PushRequest
 	if err := c.Bind(&req); err != nil {
+		log.Printf("❌ Push: bind error: %v", err)
 		return err
 	}
 	if err := c.Validate(&req); err != nil {
+		log.Printf("❌ Push: validate error: %v", err)
 		return err
+	}
+
+	log.Printf("📥 Push received: %d items", len(req.Items))
+	for _, it := range req.Items {
+		log.Printf("   📦 %s %s id=%s", it.Operation, it.TargetTable, it.RowID)
 	}
 
 	err := s.db.Transaction(func(tx *gorm.DB) error {
@@ -46,9 +71,9 @@ func (s *SyncController) Push(c echo.Context) error {
 					tx.Where("id = ?", it.RowID).Delete(&models.Jurnal{})
 					continue
 				}
-				// skip payload kosong (old queue) biar tidak FK fail
-				keuskupanID, _ := it.Payload["keuskupan_id"].(string)
-				if keuskupanID == "" {
+				keuskupanID := strToUint(it.Payload["keuskupan_id"])
+				if keuskupanID == 0 {
+					log.Printf("⚠️ Skip jurnal %s: keuskupan_id kosong", it.RowID)
 					continue
 				}
 				var j models.Jurnal
@@ -56,17 +81,11 @@ func (s *SyncController) Push(c echo.Context) error {
 					j.ID = it.RowID
 					j.KeuskupanID = keuskupanID
 					if v, ok := it.Payload["tanggal"].(string); ok {
-						// ponytail: Dart toIso8601String format 2024-08-31T13:35:55.123456 tanpa Z, coba beberapa format
-						parsed := false
 						for _, layout := range []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05.999999", "2006-01-02T15:04:05", "2006-01-02"} {
 							if t, err := time.Parse(layout, v); err == nil {
 								j.Tanggal = t
-								parsed = true
 								break
 							}
-						}
-						if !parsed {
-							j.Tanggal = time.Now()
 						}
 					} else {
 						j.Tanggal = time.Now()
@@ -78,7 +97,7 @@ func (s *SyncController) Push(c echo.Context) error {
 						j.NoBukti = &v
 					}
 					if err := tx.Create(&j).Error; err != nil {
-						// skip FK fail, jangan abort bulk
+						log.Printf("⚠️ Create jurnal %s error: %v", it.RowID, err)
 						continue
 					}
 				} else {
@@ -93,96 +112,134 @@ func (s *SyncController) Push(c echo.Context) error {
 				}
 			case "keuskupans":
 				if it.Operation == "delete" {
-					tx.Where("id = ?", it.RowID).Delete(&models.Keuskupan{})
+					if id := strToUint(it.RowID); id != 0 {
+						tx.Where("id = ?", id).Delete(&models.Keuskupan{})
+					}
 					continue
 				}
 				nama, _ := it.Payload["nama"].(string)
 				alamat, _ := it.Payload["alamat"].(string)
+				id := strToUint(it.RowID)
 				if nama == "" {
 					continue
 				}
 				var k models.Keuskupan
-				if err := tx.Where("id = ?", it.RowID).First(&k).Error; err != nil {
-					k.ID = it.RowID
-					k.Nama = nama
-					k.Alamat = alamat
-					tx.Create(&k)
-				} else {
-					tx.Model(&models.Keuskupan{}).Where("id = ?", it.RowID).Updates(map[string]interface{}{"nama": nama, "alamat": alamat})
+				if id != 0 {
+					if err := tx.Where("id = ?", id).First(&k).Error; err == nil {
+						tx.Model(&models.Keuskupan{}).Where("id = ?", id).Updates(map[string]interface{}{"nama": nama, "alamat": alamat})
+						continue
+					}
 				}
+				k.Nama = nama
+				k.Alamat = alamat
+				tx.Create(&k)
 			case "parokis":
 				if it.Operation == "delete" {
-					tx.Where("id = ?", it.RowID).Delete(&models.Paroki{})
+					if id := strToUint(it.RowID); id != 0 {
+						tx.Where("id = ?", id).Delete(&models.Paroki{})
+					}
 					continue
 				}
 				nama, _ := it.Payload["nama"].(string)
 				alamat, _ := it.Payload["alamat"].(string)
-				keuskupanID, _ := it.Payload["keuskupan_id"].(string)
-				if nama == "" || keuskupanID == "" {
+				keuskupanID := strToUint(it.Payload["keuskupan_id"])
+				id := strToUint(it.RowID)
+				if nama == "" || keuskupanID == 0 {
 					continue
 				}
 				var p models.Paroki
-				if err := tx.Where("id = ?", it.RowID).First(&p).Error; err != nil {
-					p.ID = it.RowID
-					p.Nama = nama
-					p.Alamat = alamat
-					p.KeuskupanID = keuskupanID
-					tx.Create(&p)
-				} else {
-					tx.Model(&models.Paroki{}).Where("id = ?", it.RowID).Updates(map[string]interface{}{"nama": nama, "alamat": alamat, "keuskupan_id": keuskupanID})
+				if id != 0 {
+					if err := tx.Where("id = ?", id).First(&p).Error; err == nil {
+						tx.Model(&models.Paroki{}).Where("id = ?", id).Updates(map[string]interface{}{"nama": nama, "alamat": alamat, "keuskupan_id": keuskupanID})
+						continue
+					}
 				}
+				p.Nama = nama
+				p.Alamat = alamat
+				p.KeuskupanID = keuskupanID
+				tx.Create(&p)
 			case "jenis":
 				if it.Operation == "delete" {
-					tx.Where("id = ?", it.RowID).Delete(&models.Jenis{})
+					if id := strToUint(it.RowID); id != 0 {
+						tx.Where("id = ?", id).Delete(&models.Jenis{})
+					}
 					continue
 				}
 				nama, _ := it.Payload["nama"].(string)
+				id := strToUint(it.RowID)
 				if nama == "" {
 					continue
 				}
 				var j models.Jenis
-				if err := tx.Where("id = ?", it.RowID).First(&j).Error; err != nil {
-					j.ID = it.RowID
-					j.Nama = nama
-					tx.Create(&j)
-				} else {
-					tx.Model(&models.Jenis{}).Where("id = ?", it.RowID).Updates(map[string]interface{}{"nama": nama})
+				if id != 0 {
+					if err := tx.Where("id = ?", id).First(&j).Error; err == nil {
+						tx.Model(&models.Jenis{}).Where("id = ?", id).Updates(map[string]interface{}{"nama": nama})
+						continue
+					}
 				}
+				j.Nama = nama
+				tx.Create(&j)
 			case "akuns":
 				if it.Operation == "delete" {
-					tx.Where("id = ?", it.RowID).Delete(&models.Akun{})
+					if id := strToUint(it.RowID); id != 0 {
+						tx.Where("id = ?", id).Delete(&models.Akun{})
+					}
 					continue
 				}
 				kode, _ := it.Payload["kode"].(string)
 				nama, _ := it.Payload["nama"].(string)
-				jenisID, _ := it.Payload["jenis_id"].(string)
-				if kode == "" || jenisID == "" {
+				jenisID := strToUint(it.Payload["jenis_id"])
+				id := strToUint(it.RowID)
+				if kode == "" || jenisID == 0 {
 					continue
 				}
 				var a models.Akun
-				if err := tx.Where("id = ?", it.RowID).First(&a).Error; err != nil {
-					a.ID = it.RowID
-					a.Kode = kode
-					a.Nama = nama
-					a.JenisID = jenisID
-					tx.Create(&a)
-				} else {
-					tx.Model(&models.Akun{}).Where("id = ?", it.RowID).Updates(map[string]interface{}{"kode": kode, "nama": nama, "jenis_id": jenisID})
+				if id != 0 {
+					if err := tx.Where("id = ?", id).First(&a).Error; err == nil {
+						tx.Model(&models.Akun{}).Where("id = ?", id).Updates(map[string]interface{}{"kode": kode, "nama": nama, "jenis_id": jenisID})
+						continue
+					}
 				}
+				a.Kode = kode
+				a.Nama = nama
+				a.JenisID = jenisID
+				tx.Create(&a)
+			case "roles":
+				if it.Operation == "delete" {
+					if id := strToUint(it.RowID); id != 0 {
+						tx.Where("id = ?", id).Delete(&models.Role{})
+					}
+					continue
+				}
+				nama, _ := it.Payload["nama"].(string)
+				id := strToUint(it.RowID)
+				if nama == "" {
+					continue
+				}
+				var r models.Role
+				if id != 0 {
+					if err := tx.Where("id = ?", id).First(&r).Error; err == nil {
+						tx.Model(&models.Role{}).Where("id = ?", id).Updates(map[string]interface{}{"nama": nama})
+						continue
+					}
+				}
+				r.Nama = nama
+				tx.Create(&r)
 			case "detil_jurnals":
 				if it.Operation == "delete" {
-					tx.Where("id = ?", it.RowID).Delete(&models.DetilJurnal{})
+					if id := strToUint(it.RowID); id != 0 {
+						tx.Where("id = ?", id).Delete(&models.DetilJurnal{})
+					}
 					continue
 				}
 				jurnalID, _ := it.Payload["jurnal_id"].(string)
-				akunID, _ := it.Payload["akun_id"].(string)
-				parokiID, _ := it.Payload["paroki_id"].(string)
-				if jurnalID == "" || akunID == "" || parokiID == "" {
+				akunID := strToUint(it.Payload["akun_id"])
+				parokiID := strToUint(it.Payload["paroki_id"])
+				if jurnalID == "" || akunID == 0 || parokiID == 0 {
 					continue
 				}
 				var d models.DetilJurnal
-				if err := tx.Where("id = ?", it.RowID).First(&d).Error; err != nil {
-					d.ID = it.RowID
+				if err := tx.Where("jurnal_id = ?", jurnalID).Order("id ASC").First(&d).Error; err != nil {
 					d.JurnalID = jurnalID
 					d.AkunID = akunID
 					d.ParokiID = parokiID
@@ -204,17 +261,19 @@ func (s *SyncController) Push(c echo.Context) error {
 					if v, ok := it.Payload["kredit"].(float64); ok {
 						updates["kredit"] = v
 					}
-					tx.Model(&models.DetilJurnal{}).Where("id = ?", it.RowID).Updates(updates)
+					tx.Model(&models.DetilJurnal{}).Where("id = ?", d.ID).Updates(updates)
 				}
 			default:
-				// ignore unknown
+				log.Printf("⚠️ Push: skip unknown table %s", it.TargetTable)
 			}
 		}
 		return nil
 	})
 	if err != nil {
+		log.Printf("❌ Push transaction error: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Gagal sync push")
 	}
+	log.Printf("✅ Push done: %d items", len(req.Items))
 	return c.JSON(http.StatusOK, map[string]interface{}{"message": "Sync push berhasil", "count": len(req.Items)})
 }
 
@@ -222,12 +281,15 @@ func (s *SyncController) Pull(c echo.Context) error {
 	sinceStr := c.QueryParam("since")
 	var since time.Time
 	if sinceStr != "" {
-		if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
-			since = t
-		} else if t, err := time.Parse("2006-01-02", sinceStr); err == nil {
-			since = t
+		for _, layout := range []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05.999999", "2006-01-02T15:04:05.999", "2006-01-02T15:04:05.000", "2006-01-02T15:04:05", "2006-01-02"} {
+			if t, err := time.Parse(layout, sinceStr); err == nil {
+				since = t
+				break
+			}
 		}
 	}
+	log.Printf("📤 Pull request: since=%s", since.Format(time.RFC3339))
+
 	var jurnals []models.Jurnal
 	q := s.db.Preload("DetilJurnal").Where("updated_at > ?", since).Order("updated_at ASC").Limit(100)
 	if err := q.Find(&jurnals).Error; err != nil {
@@ -236,10 +298,30 @@ func (s *SyncController) Pull(c echo.Context) error {
 	var deleted []models.Jurnal
 	s.db.Unscoped().Where("deleted_at IS NOT NULL AND deleted_at > ?", since).Find(&deleted)
 
+	// master juga biar web yang kosong dapat paroki/jenis/akun/role
+	var keuskupans []models.Keuskupan
+	s.db.Where("updated_at > ?", since).Find(&keuskupans)
+	var parokis []models.Paroki
+	s.db.Where("updated_at > ?", since).Find(&parokis)
+	var jenisList []models.Jenis
+	s.db.Where("updated_at > ?", since).Find(&jenisList)
+	var akuns []models.Akun
+	s.db.Where("updated_at > ?", since).Find(&akuns)
+	var roles []models.Role
+	s.db.Where("updated_at > ?", since).Find(&roles)
+
+	log.Printf("📤 Pull result: jurnals=%d, deleted=%d, keuskupans=%d, parokis=%d, jenis=%d, akuns=%d, roles=%d",
+		len(jurnals), len(deleted), len(keuskupans), len(parokis), len(jenisList), len(akuns), len(roles))
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"since":   since,
-		"jurnals": jurnals,
-		"deleted": deleted,
-		"count":   len(jurnals),
+		"since":      since,
+		"jurnals":    jurnals,
+		"deleted":    deleted,
+		"count":      len(jurnals),
+		"keuskupans": keuskupans,
+		"parokis":    parokis,
+		"jenis":      jenisList,
+		"akuns":      akuns,
+		"roles":      roles,
 	})
 }

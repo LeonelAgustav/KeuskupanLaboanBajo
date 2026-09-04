@@ -32,6 +32,15 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	users.PUT("/:id", userController.Update)
 	users.DELETE("/:id", userController.Delete)
 
+	// Role routes
+	roleController := controllers.NewRoleController(db)
+	roles := api.Group("/roles")
+	roles.POST("", roleController.Create)
+	roles.GET("", roleController.List)
+	roles.GET("/:id", roleController.Get)
+	roles.PUT("/:id", roleController.Update)
+	roles.DELETE("/:id", roleController.Delete)
+
 	// Paroki routes
 	parokiController := controllers.NewParokiController(db)
 	parokis := api.Group("/paroki")

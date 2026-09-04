@@ -67,7 +67,7 @@ func (c *AkunController) List(ctx echo.Context) error {
 			CreatedAt: a.CreatedAt,
 			UpdatedAt: a.UpdatedAt,
 		}
-		if a.Jenis.ID != "" {
+		if a.Jenis.ID != 0 {
 			responses[i].Jenis = &dto.JenisResponse{
 				ID:        a.Jenis.ID,
 				Nama:      a.Jenis.Nama,
@@ -108,7 +108,7 @@ func (c *AkunController) Get(ctx echo.Context) error {
 		CreatedAt: akun.CreatedAt,
 		UpdatedAt: akun.UpdatedAt,
 	}
-	if akun.Jenis.ID != "" {
+	if akun.Jenis.ID != 0 {
 		resp.Jenis = &dto.JenisResponse{
 			ID:        akun.Jenis.ID,
 			Nama:      akun.Jenis.Nama,

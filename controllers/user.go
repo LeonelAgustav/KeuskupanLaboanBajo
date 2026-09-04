@@ -37,7 +37,7 @@ func (c *UserController) List(ctx echo.Context) error {
 		query.Limit = 100
 	}
 
-	db := c.db.Model(&models.User{})
+	db := c.db.Model(&models.User{}).Preload("Role")
 
 	if query.Search != "" {
 		search := "%" + query.Search + "%"
@@ -66,6 +66,7 @@ func (c *UserController) List(ctx echo.Context) error {
 			ID:        u.ID,
 			Nama:      u.Nama,
 			Email:     u.Email,
+			Role:      toRoleResponse(u.Role),
 			CreatedAt: u.CreatedAt,
 			UpdatedAt: u.UpdatedAt,
 		}
@@ -87,7 +88,7 @@ func (c *UserController) Get(ctx echo.Context) error {
 	}
 
 	var user models.User
-	if err := c.db.First(&user, id).Error; err != nil {
+	if err := c.db.Preload("Role").First(&user, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return echo.NewHTTPError(http.StatusNotFound, "User tidak ditemukan")
 		}
@@ -98,6 +99,7 @@ func (c *UserController) Get(ctx echo.Context) error {
 		ID:        user.ID,
 		Nama:      user.Nama,
 		Email:     user.Email,
+		Role:      toRoleResponse(user.Role),
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	})
@@ -113,12 +115,22 @@ func (c *UserController) Create(ctx echo.Context) error {
 	}
 
 	user := models.User{
-		Nama:  req.Nama,
-		Email: req.Email,
+		Nama:   req.Nama,
+		Email:  req.Email,
+		RoleID: req.RoleID,
 	}
 
 	if err := c.db.Create(&user).Error; err != nil {
 		return err
+	}
+
+	// Load role if exists
+	var role *models.Role
+	if user.RoleID != nil {
+		var roleModel models.Role
+		if err := c.db.First(&roleModel, *user.RoleID).Error; err == nil {
+			role = &roleModel
+		}
 	}
 
 	return ctx.JSON(http.StatusCreated, dto.CreateResponse{
@@ -127,6 +139,7 @@ func (c *UserController) Create(ctx echo.Context) error {
 			ID:        user.ID,
 			Nama:      user.Nama,
 			Email:     user.Email,
+			Role:      toRoleResponse(role),
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 		},
@@ -161,9 +174,21 @@ func (c *UserController) Update(ctx echo.Context) error {
 	if req.Email != nil {
 		user.Email = *req.Email
 	}
+	if req.RoleID != nil {
+		user.RoleID = req.RoleID
+	}
 
 	if err := c.db.Save(&user).Error; err != nil {
 		return err
+	}
+
+	// Load role if exists
+	var role *models.Role
+	if user.RoleID != nil {
+		var roleModel models.Role
+		if err := c.db.First(&roleModel, *user.RoleID).Error; err == nil {
+			role = &roleModel
+		}
 	}
 
 	return ctx.JSON(http.StatusOK, dto.CreateResponse{
@@ -172,6 +197,7 @@ func (c *UserController) Update(ctx echo.Context) error {
 			ID:        user.ID,
 			Nama:      user.Nama,
 			Email:     user.Email,
+			Role:      toRoleResponse(role),
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 		},
@@ -195,4 +221,16 @@ func (c *UserController) Delete(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{
 		"message": "Data Berhasil di Hapus",
 	})
+}
+
+func toRoleResponse(role *models.Role) *dto.RoleResponse {
+	if role == nil {
+		return nil
+	}
+	return &dto.RoleResponse{
+		ID:        role.ID,
+		Nama:      role.Nama,
+		CreatedAt: role.CreatedAt,
+		UpdatedAt: role.UpdatedAt,
+	}
 }

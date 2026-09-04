@@ -39,21 +39,21 @@ func (ld LocalDate) MarshalJSON() ([]byte, error) {
 type AkunCreateRequest struct {
 	Kode    string `json:"kode" validate:"required,min=3,max=20"`
 	Nama    string `json:"nama" validate:"required,min=2,max=100"`
-	JenisID string   `json:"jenis_id" validate:"required"`
+	JenisID uint     `json:"jenis_id" validate:"required"`
 }
 
 type AkunUpdateRequest struct {
 	Kode    *string `json:"kode,omitempty" validate:"omitempty,min=3,max=20"`
 	Nama    *string `json:"nama,omitempty" validate:"omitempty,min=2,max=100"`
-	JenisID *string   `json:"jenis_id,omitempty"`
+	JenisID *uint     `json:"jenis_id,omitempty"`
 }
 
 type DetilJurnalCreateReq struct {
-	AkunID string     `json:"akun_id" validate:"required"`
-	ParokiID string     `json:"paroki_id" validate:"required"`
-	Debit      *float64 `json:"debit,omitempty"`
-	Kredit     *float64 `json:"kredit,omitempty"`
-	Keterangan *string  `json:"keterangan,omitempty"`
+	AkunID     uint       `json:"akun_id" validate:"required"`
+	ParokiID   uint       `json:"paroki_id" validate:"required"`
+	Debit      *float64   `json:"debit,omitempty"`
+	Kredit     *float64   `json:"kredit,omitempty"`
+	Keterangan *string    `json:"keterangan,omitempty"`
 }
 
 type JenisCreateRequest struct {
@@ -65,19 +65,19 @@ type JenisUpdateRequest struct {
 }
 
 type JurnalCreateRequest struct {
-	KeuskupanID string                   `json:"keuskupan_id" validate:"required"`
-	Tanggal     LocalDate              `json:"tanggal" validate:"required"`
-	Deskripsi   *string                `json:"deskripsi,omitempty"`
-	NoBukti     *string                `json:"no_bukti,omitempty"`
-	DetilJurnal []DetilJurnalCreateReq `json:"detil_jurnal" validate:"required,min=1,dive"`
+	KeuskupanID uint                     `json:"keuskupan_id" validate:"required"`
+	Tanggal     LocalDate                `json:"tanggal" validate:"required"`
+	Deskripsi   *string                  `json:"deskripsi,omitempty"`
+	NoBukti     *string                  `json:"no_bukti,omitempty"`
+	DetilJurnal []DetilJurnalCreateReq   `json:"detil_jurnal" validate:"required,min=1,dive"`
 }
 
 type JurnalUpdateRequest struct {
-	KeuskupanID *string                  `json:"keuskupan_id,omitempty"`
-	Tanggal     *LocalDate             `json:"tanggal,omitempty"`
-	Deskripsi   *string                `json:"deskripsi,omitempty"`
-	NoBukti     *string                `json:"no_bukti,omitempty"`
-	DetilJurnal []DetilJurnalCreateReq `json:"detil_jurnal,omitempty" validate:"omitempty,dive"`
+	KeuskupanID *uint                   `json:"keuskupan_id,omitempty"`
+	Tanggal     *LocalDate              `json:"tanggal,omitempty"`
+	Deskripsi   *string                 `json:"deskripsi,omitempty"`
+	NoBukti     *string                 `json:"no_bukti,omitempty"`
+	DetilJurnal []DetilJurnalCreateReq  `json:"detil_jurnal,omitempty" validate:"omitempty,dive"`
 }
 
 type KeuskupanCreateRequest struct {
@@ -93,35 +93,38 @@ type KeuskupanUpdateRequest struct {
 type ParokiCreateRequest struct {
 	Nama        string `json:"nama" validate:"required,min=2,max=100"`
 	Alamat      string `json:"alamat" validate:"required,max=255"`
-	KeuskupanID string   `json:"keuskupan_id" validate:"required"`
+	KeuskupanID uint     `json:"keuskupan_id" validate:"required"`
 }
 
 type ParokiUpdateRequest struct {
 	Nama        *string `json:"nama,omitempty" validate:"omitempty,min=2,max=100"`
 	Alamat      *string `json:"alamat,omitempty" validate:"omitempty,max=255"`
-	KeuskupanID *string   `json:"keuskupan_id,omitempty"`
+	KeuskupanID *uint     `json:"keuskupan_id,omitempty"`
 }
 
 type PembatasanCreateRequest struct {
 	Tipe   string   `json:"tipe" validate:"required,min=2,max=50"`
 	Nilai  *float64 `json:"nilai,omitempty"`
-	AkunID *string    `json:"akun_id,omitempty"`
+	AkunID *uint      `json:"akun_id,omitempty"`
 }
 
 type PembatasanUpdateRequest struct {
 	Tipe   *string  `json:"tipe,omitempty" validate:"omitempty,min=2,max=50"`
 	Nilai  *float64 `json:"nilai,omitempty"`
-	AkunID *string    `json:"akun_id,omitempty"`
+	AkunID *uint      `json:"akun_id,omitempty"`
 }
 
 type UserCreateRequest struct {
-	Nama  string `json:"nama" validate:"required,min=2,max=100"`
-	Email string `json:"email" validate:"required,email,max=100"`
+	Nama   string `json:"nama" validate:"required,min=2,max=100"`
+	Email  string `json:"email" validate:"required,email,max=100"`
+	Password string `json:"password" validate:"required,min=6,max=100"`
+	RoleID *uint    `json:"role_id,omitempty"`
 }
 
 type UserUpdateRequest struct {
-	Nama  *string `json:"nama,omitempty" validate:"omitempty,min=2,max=100"`
-	Email *string `json:"email,omitempty" validate:"omitempty,email,max=100"`
+	Nama    *string `json:"nama,omitempty" validate:"omitempty,min=2,max=100"`
+	Email   *string `json:"email,omitempty" validate:"omitempty,email,max=100"`
+	RoleID  *uint    `json:"role_id,omitempty"`
 }
 
 type ListQuery struct {

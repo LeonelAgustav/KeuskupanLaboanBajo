@@ -5,31 +5,31 @@ import (
 )
 
 type AkunResponse struct {
-	ID string           `json:"id"`
+	ID        uint           `json:"id"`
 	Kode      string         `json:"kode"`
 	Nama      string         `json:"nama"`
-	JenisID string           `json:"jenis_id"`
+	JenisID   uint           `json:"jenis_id"`
 	Jenis     *JenisResponse `json:"jenis,omitempty"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 type DetilJurnalResp struct {
-	ID string            `json:"id"`
-	JurnalID   string          `json:"jurnal_id"`
-	AkunID string            `json:"akun_id"`
-	Akun       *AkunResponse   `json:"akun,omitempty"`
-	ParokiID string            `json:"paroki_id"`
-	Paroki     *ParokiResponse `json:"paroki,omitempty"`
-	Debit      *float64        `json:"debit,omitempty"`
-	Kredit     *float64        `json:"kredit,omitempty"`
-	Keterangan *string         `json:"keterangan,omitempty"`
-	CreatedAt  time.Time       `json:"created_at"`
-	UpdatedAt  time.Time       `json:"updated_at"`
+	ID         uint             `json:"id"`
+	JurnalID   string           `json:"jurnal_id"`
+	AkunID     uint             `json:"akun_id"`
+	Akun       *AkunResponse    `json:"akun,omitempty"`
+	ParokiID   uint             `json:"paroki_id"`
+	Paroki     *ParokiResponse  `json:"paroki,omitempty"`
+	Debit      *float64         `json:"debit,omitempty"`
+	Kredit     *float64         `json:"kredit,omitempty"`
+	Keterangan *string          `json:"keterangan,omitempty"`
+	CreatedAt  time.Time        `json:"created_at"`
+	UpdatedAt  time.Time        `json:"updated_at"`
 }
 
 type JenisResponse struct {
-	ID string      `json:"id"`
+	ID        uint      `json:"id"`
 	Nama      string    `json:"nama"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -37,7 +37,7 @@ type JenisResponse struct {
 
 type JurnalResponse struct {
 	ID          string             `json:"id"`
-	KeuskupanID string               `json:"keuskupan_id"`
+	KeuskupanID uint               `json:"keuskupan_id"`
 	Keuskupan   *KeuskupanResponse `json:"keuskupan,omitempty"`
 	Tanggal     time.Time          `json:"tanggal"`
 	Deskripsi   *string            `json:"deskripsi,omitempty"`
@@ -48,7 +48,7 @@ type JurnalResponse struct {
 }
 
 type KeuskupanResponse struct {
-	ID string      `json:"id"`
+	ID        uint      `json:"id"`
 	Nama      string    `json:"nama"`
 	Alamat    string    `json:"alamat"`
 	CreatedAt time.Time `json:"created_at"`
@@ -56,31 +56,39 @@ type KeuskupanResponse struct {
 }
 
 type ParokiResponse struct {
-	ID string               `json:"id"`
+	ID          uint               `json:"id"`
 	Nama        string             `json:"nama"`
 	Alamat      string             `json:"alamat"`
-	KeuskupanID string               `json:"keuskupan_id"`
+	KeuskupanID uint               `json:"keuskupan_id"`
 	Keuskupan   *KeuskupanResponse `json:"keuskupan,omitempty"`
 	CreatedAt   time.Time          `json:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`
 }
 
 type PembatasanResponse struct {
-	ID string          `json:"id"`
+	ID        uint          `json:"id"`
 	Tipe      string        `json:"tipe"`
 	Nilai     *float64      `json:"nilai,omitempty"`
-	AkunID    *string         `json:"akun_id,omitempty"`
+	AkunID    *uint         `json:"akun_id,omitempty"`
 	Akun      *AkunResponse `json:"akun,omitempty"`
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time     `json:"updated_at"`
 }
 
-type UserResponse struct {
-	ID string      `json:"id"`
+type RoleResponse struct {
+	ID        uint      `json:"id"`
 	Nama      string    `json:"nama"`
-	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type UserResponse struct {
+	ID        uint         `json:"id"`
+	Nama      string       `json:"nama"`
+	Email     string       `json:"email"`
+	Role      *RoleResponse `json:"role,omitempty"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 type ListResponse struct {

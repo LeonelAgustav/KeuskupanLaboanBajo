@@ -67,7 +67,7 @@ func (c *ParokiController) List(ctx echo.Context) error {
 			CreatedAt:   p.CreatedAt,
 			UpdatedAt:   p.UpdatedAt,
 		}
-		if p.Keuskupan.ID != "" {
+		if p.Keuskupan.ID != 0 {
 			responses[i].Keuskupan = &dto.KeuskupanResponse{
 				ID:        p.Keuskupan.ID,
 				Nama:      p.Keuskupan.Nama,
@@ -109,7 +109,7 @@ func (c *ParokiController) Get(ctx echo.Context) error {
 		CreatedAt:   paroki.CreatedAt,
 		UpdatedAt:   paroki.UpdatedAt,
 	}
-	if paroki.Keuskupan.ID != "" {
+	if paroki.Keuskupan.ID != 0 {
 		resp.Keuskupan = &dto.KeuskupanResponse{
 			ID:        paroki.Keuskupan.ID,
 			Nama:      paroki.Keuskupan.Nama,

@@ -83,7 +83,7 @@ func (c *JurnalController) List(ctx echo.Context) error {
 			CreatedAt:   j.CreatedAt,
 			UpdatedAt:   j.UpdatedAt,
 		}
-		if j.Keuskupan.ID != "" {
+		if j.Keuskupan.ID != 0 {
 			responses[i].Keuskupan = &dto.KeuskupanResponse{
 				ID:        j.Keuskupan.ID,
 				Nama:      j.Keuskupan.Nama,
@@ -135,11 +135,11 @@ func (c *JurnalController) loadDetilJurnal(jurnalIDs []string) map[string][]dto.
 
 	for rows.Next() {
 		var d models.DetilJurnal
-		var akunID, parokiID sql.NullString
+		var akunID, parokiID sql.NullInt64
 		var kode, nama, parokiNama, alamat sql.NullString
-		var jenisID sql.NullString
+		var jenisID sql.NullInt64
 		var akunCreatedAt, akunUpdatedAt, parokiCreatedAt, parokiUpdatedAt sql.NullTime
-		var keuskupanID sql.NullString
+		var keuskupanID sql.NullInt64
 
 		if err := rows.Scan(
 			&d.ID, &d.JurnalID, &d.AkunID, &d.ParokiID, &d.Debit, &d.Kredit, &d.Keterangan, &d.CreatedAt, &d.UpdatedAt,
@@ -163,20 +163,20 @@ func (c *JurnalController) loadDetilJurnal(jurnalIDs []string) map[string][]dto.
 
 		if akunID.Valid {
 			resp.Akun = &dto.AkunResponse{
-				ID:        akunID.String,
+				ID:        uint(akunID.Int64),
 				Kode:      kode.String,
 				Nama:      nama.String,
-				JenisID:   jenisID.String,
+				JenisID:   uint(jenisID.Int64),
 				CreatedAt: akunCreatedAt.Time,
 				UpdatedAt: akunUpdatedAt.Time,
 			}
 		}
 		if parokiID.Valid {
 			resp.Paroki = &dto.ParokiResponse{
-				ID:          parokiID.String,
+				ID:          uint(parokiID.Int64),
 				Nama:        parokiNama.String,
 				Alamat:      alamat.String,
-				KeuskupanID: keuskupanID.String,
+				KeuskupanID: uint(keuskupanID.Int64),
 				CreatedAt:   parokiCreatedAt.Time,
 				UpdatedAt:   parokiUpdatedAt.Time,
 			}
@@ -223,7 +223,7 @@ func (c *JurnalController) Get(ctx echo.Context) error {
 		CreatedAt:   jurnal.CreatedAt,
 		UpdatedAt:   jurnal.UpdatedAt,
 	}
-	if keuskupan.ID != "" {
+	if keuskupan.ID != 0 {
 		resp.Keuskupan = &dto.KeuskupanResponse{
 			ID:        keuskupan.ID,
 			Nama:      keuskupan.Nama,
@@ -487,7 +487,7 @@ func (c *JurnalController) ListDetil(ctx echo.Context) error {
 			CreatedAt:  d.CreatedAt,
 			UpdatedAt:  d.UpdatedAt,
 		}
-		if d.Akun.ID != "" {
+		if d.Akun.ID != 0 {
 			responses[i].Akun = &dto.AkunResponse{
 				ID:        d.Akun.ID,
 				Kode:      d.Akun.Kode,
@@ -497,7 +497,7 @@ func (c *JurnalController) ListDetil(ctx echo.Context) error {
 				UpdatedAt: d.Akun.UpdatedAt,
 			}
 		}
-		if d.Paroki.ID != "" {
+		if d.Paroki.ID != 0 {
 			responses[i].Paroki = &dto.ParokiResponse{
 				ID:          d.Paroki.ID,
 				Nama:        d.Paroki.Nama,

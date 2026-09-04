@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,24 +22,30 @@ func JWTSecret() []byte {
 type Claims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
+	Role   string `json:"role,omitempty"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID, email string) (access, refresh string, err error) {
+func GenerateToken(userID uint, email, role string) (access, refresh string, err error) {
+	uid := strconv.FormatUint(uint64(userID), 10)
+	// ponytail: 1 tahun biar tidak sering login di lapangan
+	oneYear := 365 * 24 * time.Hour
 	accessClaims := Claims{
-		UserID: userID,
+		UserID: uid,
 		Email:  email,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(oneYear)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "keuskupan-be",
 		},
 	}
 	refreshClaims := Claims{
-		UserID: userID,
+		UserID: uid,
 		Email:  email,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(oneYear)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "keuskupan-be",
 		},

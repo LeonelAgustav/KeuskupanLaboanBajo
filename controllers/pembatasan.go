@@ -67,7 +67,7 @@ func (c *PembatasanController) List(ctx echo.Context) error {
 			CreatedAt: p.CreatedAt,
 			UpdatedAt: p.UpdatedAt,
 		}
-		if p.Akun != nil && p.Akun.ID != "" {
+		if p.Akun != nil && p.Akun.ID != 0 {
 			responses[i].Akun = &dto.AkunResponse{
 				ID:        p.Akun.ID,
 				Kode:      p.Akun.Kode,
@@ -110,7 +110,7 @@ func (c *PembatasanController) Get(ctx echo.Context) error {
 		CreatedAt: pembatasan.CreatedAt,
 		UpdatedAt: pembatasan.UpdatedAt,
 	}
-	if pembatasan.Akun != nil && pembatasan.Akun.ID != "" {
+	if pembatasan.Akun != nil && pembatasan.Akun.ID != 0 {
 		resp.Akun = &dto.AkunResponse{
 			ID:        pembatasan.Akun.ID,
 			Kode:      pembatasan.Akun.Kode,
