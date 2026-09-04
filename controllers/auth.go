@@ -29,7 +29,7 @@ type RegisterRequest struct {
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" validate:"required,email"`
+	Email    string `json:"email" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
 
@@ -74,8 +74,8 @@ func (a *AuthController) Login(c echo.Context) error {
 		return err
 	}
 	var user models.User
-	if err := a.db.Preload("Role").Where("email = ?", req.Email).First(&user).Error; err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Email atau password salah")
+	if err := a.db.Preload("Role").Where("email = ? OR nama = ?", req.Email, req.Email).First(&user).Error; err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Email atau nama atau password salah")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Email atau password salah")
